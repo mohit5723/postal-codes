@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import type { PinCodeData } from "./types/PinCodeData";
-import { getPinCodeData } from "./services/getPinCodeData";
+import { getPinCodeData, getPostOfficeData } from "./services/getPostalData";
 import Loading from "./components/Loading";
 import SearchComponent from "./components/SearchComponent";
 import DisplayPostals from "./components/DisplayPostals";
@@ -12,36 +12,43 @@ function App() {
   const [deliveryStatus, setDeliveryStatus] = useState<
     "Delivery" | "Non-Delivery" | "All"
   >("All");
+  const [branchType, setBranchType] = useState<"All" | "Head Post Office" | "Sub Post Office">("All");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [hasSearched, setHasSearched] = useState<boolean>(false); // ✅ New state
+  const [hasSearched, setHasSearched] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [branchType, setBranchType] = useState<
-    "All" | "Head Post Office" | "Sub Post Office"
-  >("All");
 
   useEffect(() => {
     async function getData() {
       if (!searchInput) return;
 
-      // ✅ Validate pin code if isPinCode is true
+      // Validate pin code if isPinCode is true
       if (isPinCode && !/^\d{6}$/.test(searchInput)) {
         setErrorMessage("Please enter a valid 6-digit pin code.");
         return;
       }
 
       setIsLoading(true);
-      const data = await getPinCodeData(searchInput);
-      setHasSearched(true);
+      try {
+        const data = isPinCode 
+          ? await getPinCodeData(searchInput)
+          : await getPostOfficeData(searchInput);
+        
+        setHasSearched(true);
 
-      if (data && data[0].Status !== "Error") {
-        setPostalData(data);
-        setErrorMessage(null);
-      } else {
-        setErrorMessage("No data found");
+        if (data && data[0].Status !== "Error") {
+          setPostalData(data);
+          setErrorMessage(null);
+        } else {
+          setPostalData([]);
+          setErrorMessage("No data found");
+        }
+      } catch (error) {
+        setErrorMessage("An error occurred while fetching data"+error);
+        setPostalData([]);
+      } finally {
+        setIsLoading(false);
       }
-
-      setIsLoading(false);
     }
 
     getData();
@@ -55,16 +62,11 @@ function App() {
   }
 
   function handleSelectDelivery(e: ChangeEvent<HTMLSelectElement>) {
-    const selectedValue = e.target.value as "Delivery" | "Non-Delivery" | "All";
-    setDeliveryStatus(selectedValue || "All");
+    setDeliveryStatus(e.target.value as "Delivery" | "Non-Delivery" | "All");
   }
 
   function handleSelectBranchType(e: ChangeEvent<HTMLSelectElement>) {
-    const selectedValue = e.target.value as
-      | "All"
-      | "Head Post Office"
-      | "Sub Post Office";
-    setBranchType(selectedValue || "All");
+    setBranchType(e.target.value as "All" | "Head Post Office" | "Sub Post Office");
   }
 
   return (
@@ -81,7 +83,7 @@ function App() {
         <>
           <div className="flex gap-4 p-2">
             <select
-              className="border-2"
+              className="border-2 p-2 rounded"
               name="delivery"
               id="delivery"
               onChange={handleSelectDelivery}
@@ -91,9 +93,9 @@ function App() {
               <option value="Delivery">Delivery</option>
               <option value="Non-Delivery">Non-Delivery</option>
             </select>
-
+            
             <select
-              className="border-2"
+              className="border-2 p-2 rounded"
               name="branchType"
               id="branchType"
               onChange={handleSelectBranchType}
