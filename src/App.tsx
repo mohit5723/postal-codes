@@ -16,6 +16,9 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState<boolean>(false); // ✅ New state
   const inputRef = useRef<HTMLInputElement>(null);
+  const [branchType, setBranchType] = useState<
+    "All" | "Head Post Office" | "Sub Post Office"
+  >("All");
 
   useEffect(() => {
     async function getData() {
@@ -56,6 +59,14 @@ function App() {
     setDeliveryStatus(selectedValue || "All");
   }
 
+  function handleSelectBranchType(e: ChangeEvent<HTMLSelectElement>) {
+    const selectedValue = e.target.value as
+      | "All"
+      | "Head Post Office"
+      | "Sub Post Office";
+    setBranchType(selectedValue || "All");
+  }
+
   return (
     <>
       <SearchComponent
@@ -68,20 +79,34 @@ function App() {
 
       {!isLoading && !errorMessage && hasSearched ? (
         <>
-          <div>
+          <div className="flex gap-4 p-2">
             <select
               className="border-2"
               name="delivery"
               id="delivery"
               onChange={handleSelectDelivery}
+              value={deliveryStatus}
             >
-              <option value="">Delivery option</option>
+              <option value="All">All Delivery Options</option>
               <option value="Delivery">Delivery</option>
               <option value="Non-Delivery">Non-Delivery</option>
+            </select>
+
+            <select
+              className="border-2"
+              name="branchType"
+              id="branchType"
+              onChange={handleSelectBranchType}
+              value={branchType}
+            >
+              <option value="All">All Branch Types</option>
+              <option value="Head Post Office">Head Post Office</option>
+              <option value="Sub Post Office">Sub Post Office</option>
             </select>
           </div>
           <DisplayPostals
             deliveryStatus={deliveryStatus}
+            branchType={branchType}
             postalData={postalData}
           />
         </>
